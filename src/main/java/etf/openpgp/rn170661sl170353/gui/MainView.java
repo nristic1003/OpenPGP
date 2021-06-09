@@ -2,11 +2,13 @@ package etf.openpgp.rn170661sl170353.gui;
 
 import java.awt.EventQueue;
 
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JTable;
+import javax.swing.SwingUtilities;
 import javax.swing.JPanel;
 import java.awt.GridLayout;
 import java.security.Security;
@@ -27,6 +29,8 @@ import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import etf.openpgp.rn170661sl170353.keylogic.KeyManager;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 
 
 
@@ -36,7 +40,7 @@ public class MainView {
 	private JTable publicKeyRingTable;
 	private JTable secretKeyRingTable;
 	
-	private KeyPairWizardDialog keyPairWizardDialog;
+//	private KeyPairWizardDialog keyPairWizardDialog;
 
 	/**
 	 * Launch the application.
@@ -82,12 +86,14 @@ public class MainView {
 		frame.setJMenuBar(menuBar);
 		
 		JMenu mnNewMenu = new JMenu("New Key Pair Wizard");
-		mnNewMenu.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
-				
-				
+		mnNewMenu.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				KeyPairWizardDialog keyPairWizardDialog = new KeyPairWizardDialog();
+				keyPairWizardDialog.setVisible(true);
 			}
 		});
+
 		menuBar.add(mnNewMenu);
 		
 		JMenu mnNewMenu_1 = new JMenu("Import Key ");
