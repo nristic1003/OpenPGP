@@ -3,7 +3,6 @@ package etf.openpgp.rn170661sl170353.gui;
 import java.awt.EventQueue;
 
 import javax.swing.JFrame;
-import java.awt.GridLayout;
 import javax.swing.JLabel;
 import javax.swing.JTextField;
 import javax.swing.JPasswordField;
@@ -17,6 +16,8 @@ public class KeyPairWizard {
 	private JTextField textField;
 	private JTextField textField_1;
 	private JPasswordField passwordField;
+	private JComboBox comboBox;
+	private JComboBox comboBox_1;
 
 	/**
 	 * Launch the application.
@@ -32,6 +33,8 @@ public class KeyPairWizard {
 				}
 			}
 		});
+		
+
 	}
 
 	/**
@@ -81,7 +84,7 @@ public class KeyPairWizard {
 		lblNewLabel_3.setBounds(153, 179, 75, 14);
 		frame.getContentPane().add(lblNewLabel_3);
 		
-		JComboBox comboBox = new JComboBox();
+		comboBox = new JComboBox();
 		comboBox.setModel(new DefaultComboBoxModel(new String[] {"1024", "2048"}));
 		comboBox.setBounds(267, 175, 86, 22);
 		frame.getContentPane().add(comboBox);
@@ -90,7 +93,7 @@ public class KeyPairWizard {
 		lblNewLabel_4.setBounds(153, 214, 86, 14);
 		frame.getContentPane().add(lblNewLabel_4);
 		
-		JComboBox comboBox_1 = new JComboBox();
+		comboBox_1 = new JComboBox();
 		comboBox_1.setModel(new DefaultComboBoxModel(new String[] {"1024", "2048\t", "4096"}));
 		comboBox_1.setBounds(267, 208, 86, 22);
 		frame.getContentPane().add(comboBox_1);

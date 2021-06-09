@@ -1,0 +1,222 @@
+package etf.openpgp.rn170661sl170353.keylogic;
+
+import java.io.BufferedInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.InputStream;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
+import java.util.List;
+import java.util.ArrayList;
+import java.util.Date;
+
+import org.bouncycastle.bcpg.ArmoredOutputStream;
+import org.bouncycastle.bcpg.HashAlgorithmTags;
+import org.bouncycastle.openpgp.PGPEncryptedData;
+import org.bouncycastle.openpgp.PGPKeyPair;
+import org.bouncycastle.openpgp.PGPKeyRingGenerator;
+import org.bouncycastle.openpgp.PGPPublicKey;
+import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
+import org.bouncycastle.openpgp.PGPPublicKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKey;
+import org.bouncycastle.openpgp.PGPSecretKeyRing;
+import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
+import org.bouncycastle.openpgp.PGPSignature;
+import org.bouncycastle.openpgp.PGPUtil;
+import org.bouncycastle.openpgp.operator.PGPDigestCalculator;
+import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
+import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
+
+public class KeyManager {
+	
+    private PGPPublicKeyRingCollection publicKeyRingCollection;
+    private PGPSecretKeyRingCollection secretKeyRingCollection;
+    
+    
+    public PGPPublicKeyRingCollection getPublicKeyRingCollection() {
+		return publicKeyRingCollection;
+	}
+
+	public PGPSecretKeyRingCollection getSecretKeyRingCollection() {
+		return secretKeyRingCollection;
+	}
+
+
+	private static KeyManager keyManager;
+    
+    private KeyManager()
+    {
+    	
+    }
+    
+    public static KeyManager getInstance()
+    {
+    	if(keyManager != null)
+    		return keyManager;
+    	else
+    	{
+    		keyManager = new KeyManager();
+    		return keyManager;
+    	}
+    }
+    
+    /**
+     * 
+     * @param name
+     * @param email
+     * @param passPhrase
+     * @param dsaKeySize
+     * @param elgamalKeySize
+     */
+    public void generateDSAElgamalKeyPair(
+    		String name,
+    		String email,
+    		String passPhrase,
+    		int dsaKeySize,
+    		int elgamalKeySize
+	)
+    {
+    	try
+    	{
+    		
+    		//DSA KeyPairGenerator and KeyPair
+            KeyPairGenerator dsaKpg = KeyPairGenerator.getInstance("DSA", "BC");
+            dsaKpg.initialize(dsaKeySize);
+            KeyPair dsaKp = dsaKpg.generateKeyPair();
+            
+           
+            //ElGamal KeyPairGenerator and KeyPair error if ElGamal keysize 4096
+            KeyPairGenerator elgKpg = KeyPairGenerator.getInstance("ELGAMAL", "BC");
+            elgKpg.initialize(elgamalKeySize);
+            KeyPair elgKp = elgKpg.generateKeyPair();
+            
+            //PGPKeyPair's and KeyRing
+            PGPKeyPair dsaKeyPair = new JcaPGPKeyPair(PGPPublicKey.DSA, dsaKp, new Date());
+            PGPKeyPair elgKeyPair = new JcaPGPKeyPair(PGPPublicKey.ELGAMAL_ENCRYPT, elgKp, new Date());
+            PGPDigestCalculator sha1Calc = new JcaPGPDigestCalculatorProviderBuilder().build().get(HashAlgorithmTags.SHA1);
+            PGPKeyRingGenerator keyRingGen = new PGPKeyRingGenerator(
+            		PGPSignature.POSITIVE_CERTIFICATION, 
+            		dsaKeyPair,
+            		name + " <" + email + ">", 
+                    sha1Calc, 
+                    null, 
+                    null, 
+                    new JcaPGPContentSignerBuilder(
+                    		dsaKeyPair.getPublicKey().getAlgorithm(), 
+                    		HashAlgorithmTags.SHA1
+            		), 
+                    new JcePBESecretKeyEncryptorBuilder(
+                    		PGPEncryptedData.AES_256, 
+                    		sha1Calc
+            		).setProvider("BC").build(passPhrase.toCharArray())
+    		);
+            keyRingGen.addSubKey(elgKeyPair);
+            
+            PGPSecretKey pgpSecretKey = keyRingGen.generateSecretKeyRing().getSecretKey();
+            PGPPublicKey pgpPublicKey = pgpSecretKey.getPublicKey();
+            
+            //Izvezemo u .asc fajlove
+            OutputStream secretOut = new ArmoredOutputStream(
+        		new FileOutputStream("secret-keys/" + Long.toHexString(pgpSecretKey.getKeyID()).toUpperCase() + ".asc")
+    		); 
+            OutputStream publicOut = new ArmoredOutputStream(
+        		new FileOutputStream("public-keys/" + Long.toHexString(pgpSecretKey.getKeyID()).toUpperCase() + ".asc")
+    		);
+            
+            
+            pgpSecretKey.encode(secretOut);
+            secretOut.close();
+            
+            pgpPublicKey.encode(publicOut);
+            publicOut.close();
+                 
+    	}
+    	catch(Exception e)
+    	{
+    		e.printStackTrace();
+    	}
+    }
+    
+    public void initPublicKeyRingCollection()
+    {
+    	List<PGPPublicKeyRing> pgpPublicKeyRingList = new ArrayList<>();
+    	try 
+    	{
+    			InputStream inputStream;
+    			File publicKeysFolder = new File("./public-keys");
+    			for (final File fileEntry : publicKeysFolder.listFiles()) 
+    			{
+			        if (!fileEntry.isDirectory()) 
+			        {
+			        	//TODO: read only files with .asc extension
+			        	inputStream = new BufferedInputStream(
+			        			new FileInputStream(fileEntry)
+	        			);
+			        	
+			        	pgpPublicKeyRingList.add(
+			        			new PGPPublicKeyRing(
+			        					PGPUtil.getDecoderStream(inputStream),
+			        					new JcaKeyFingerprintCalculator()
+			        			)
+	        			);
+			        	 		         
+			        }
+    			}
+    			
+    			this.publicKeyRingCollection = new PGPPublicKeyRingCollection(pgpPublicKeyRingList);
+    			System.out.println(this.publicKeyRingCollection);
+    		
+    		
+    	}
+    	catch(Exception e)
+    	{
+    		e.printStackTrace();
+    	}
+    }
+    
+    
+    public void initSecretKeyRingCollection()
+    {
+    	List<PGPSecretKeyRing> pgpSecretKeyRingList = new ArrayList<>();
+    	try 
+    	{
+    			InputStream inputStream;
+    			File secretKeysFolder = new File("./secret-keys");
+    			for (final File fileEntry : secretKeysFolder.listFiles()) 
+    			{
+			        if (!fileEntry.isDirectory()) 
+			        {
+			        	//TODO: read only files with .asc extension
+			        	inputStream = new BufferedInputStream(
+			        			new FileInputStream(fileEntry)
+	        			);
+			        	
+			        	pgpSecretKeyRingList.add(
+			        			new PGPSecretKeyRing(
+			        					PGPUtil.getDecoderStream(inputStream),
+			        					new JcaKeyFingerprintCalculator()
+			        			)
+	        			);
+			        	 		         
+			        }
+    			}
+    			
+    			this.secretKeyRingCollection = new PGPSecretKeyRingCollection(pgpSecretKeyRingList);
+    			System.out.println(this.secretKeyRingCollection);
+    		
+    		
+    	}
+    	catch(Exception e)
+    	{
+    		e.printStackTrace();
+    	}    	
+    	
+    }
+	
+
+}
