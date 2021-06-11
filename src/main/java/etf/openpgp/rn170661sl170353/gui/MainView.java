@@ -10,10 +10,12 @@ import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JTable;
+import javax.swing.ListSelectionModel;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.JPanel;
 import javax.swing.JPasswordField;
+import javax.swing.JPopupMenu;
 
 import java.awt.GridLayout;
 import java.security.Security;
@@ -44,8 +46,11 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 
 
@@ -57,6 +62,9 @@ public class MainView{
 	
 //	private KeyPairWizardDialog keyPairWizardDialog;
 	
+	private JPopupMenu deletePublicKeyPopupMenu;
+	private JPopupMenu deleteSecretKeyPopupMenu;
+
  
 
 	/**
@@ -195,6 +203,7 @@ public class MainView{
 	        return false;
 	    }}
 		);
+		publicKeyRingTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		scrollPane.setViewportView(publicKeyRingTable);
 		
 		JPanel panel_1 = new JPanel();
@@ -223,6 +232,7 @@ public class MainView{
 			
 		}
 		);
+		secretKeyRingTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 		scrollPane_1.setViewportView(secretKeyRingTable);
 		
 		
@@ -238,6 +248,37 @@ public class MainView{
         
 		
 		/* END_SystemInit */
+        
+        /* DeletePopupMenuInit */
+        
+        this.deletePublicKeyPopupMenu = new JPopupMenu();
+        this.deleteSecretKeyPopupMenu = new JPopupMenu();
+        
+        //Delete Public Key Menu
+        JMenuItem deletePublicKeyMenuItem = new JMenuItem("Delete Public Key");
+        deletePublicKeyMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deletePublicKey();
+            }
+        });
+        this.deletePublicKeyPopupMenu.add(deletePublicKeyMenuItem);
+        this.publicKeyRingTable.setComponentPopupMenu(deletePublicKeyPopupMenu);
+        
+        //Delete Secret Key Menu
+        JMenuItem deleteSecretKeyMenuItem = new JMenuItem("Delete Secret Key");
+        deleteSecretKeyMenuItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                deleteSecretKey();
+            }
+        });
+        this.deleteSecretKeyPopupMenu.add(deleteSecretKeyMenuItem);
+        this.secretKeyRingTable.setComponentPopupMenu(deleteSecretKeyPopupMenu);
+        
+
+        
+        /* END_DeletePopupMenuInit */
 		
 		
 	}
@@ -386,7 +427,7 @@ public class MainView{
 		{
 			JOptionPane.showMessageDialog(
 					this.frame, 
-					"Please select signle row in Public Key Table to export Public Key!",
+					"Please select row in Public Key Table to export Public Key!",
 					"Invalid input",
 					JOptionPane.ERROR_MESSAGE
 			);
@@ -454,7 +495,7 @@ public class MainView{
 		{
 			JOptionPane.showMessageDialog(
 					this.frame, 
-					"Please select signle row in Secret Key Table to export Secret Key!",
+					"Please select row in Secret Key Table to export Secret Key!",
 					"Invalid input",
 					JOptionPane.ERROR_MESSAGE
 			);
@@ -538,7 +579,152 @@ public class MainView{
 		
 	}
 
+	private void deletePublicKey()
+	{
+		if(this.publicKeyRingTable.getSelectedRowCount() > 1 || this.publicKeyRingTable.getSelectedRowCount()<=0)
+		{
+			JOptionPane.showMessageDialog(
+					this.frame, 
+					"Please select row in Public Key Table to delete Public Key!",
+					"Invalid input",
+					JOptionPane.ERROR_MESSAGE
+			);
+			
+		}
+		else
+		{
+			String name = (String)this.publicKeyRingTable.getValueAt(
+					this.publicKeyRingTable.getSelectedRow(),
+					0
+			);
+			
+			String email = (String)this.publicKeyRingTable.getValueAt(
+					this.publicKeyRingTable.getSelectedRow(),
+					1
+			);
+			
+			String publicKeyFileName = (String)this.publicKeyRingTable.getValueAt(
+					this.publicKeyRingTable.getSelectedRow(),
+					2
+			);
+			
+			if(JOptionPane.showConfirmDialog(
+					this.frame,
+					"Are you shure you want delete\n" + 
+					name + " <"+ email +"> KeyID: " + publicKeyFileName,
+					"Delete Public Key",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE
+					
+				) == 0
+			)
+			{
+				try {
+					KeyManager.getInstance().removePublicKey(publicKeyFileName);
+					DefaultTableModel model = (DefaultTableModel)publicKeyRingTable.getModel();
+					model.removeRow(this.publicKeyRingTable.getSelectedRow());
+					if(Files.deleteIfExists(Paths.get("./public-keys/" + publicKeyFileName + ".asc")))
+						JOptionPane.showMessageDialog(
+								this.frame, 
+								"Public Key successfully deleted!\n" +
+								name + " <"+ email +"> KeyID: " + publicKeyFileName,
+								"Public Key Deleted",
+								JOptionPane.INFORMATION_MESSAGE		
+						);
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane.showMessageDialog(
+							this.frame, 
+							"Error while deleting Public Key!",
+							"Export error",
+							JOptionPane.ERROR_MESSAGE
+					);
+				}
+				
+			}
+			
+			
+		}
+		
+		
+	}
 	
+	private void deleteSecretKey()
+	{
+		if(this.secretKeyRingTable.getSelectedRowCount() > 1 || this.secretKeyRingTable.getSelectedRowCount()<=0)
+		{
+			JOptionPane.showMessageDialog(
+					this.frame, 
+					"Please select row in Secret Key Table to delete Secret Key!",
+					"Invalid input",
+					JOptionPane.ERROR_MESSAGE
+			);
+			
+		}
+		else
+		{
+			String name = (String)this.secretKeyRingTable.getValueAt(
+					this.secretKeyRingTable.getSelectedRow(),
+					0
+			);
+			
+			String email = (String)this.secretKeyRingTable.getValueAt(
+					this.secretKeyRingTable.getSelectedRow(),
+					1
+			);
+			
+			String secretKeyFileName = (String)this.secretKeyRingTable.getValueAt(
+					this.secretKeyRingTable.getSelectedRow(),
+					2
+			);
+			
+			if(JOptionPane.showConfirmDialog(
+					this.frame,
+					"Are you shure you want delete\n" + 
+					name + " <"+ email +"> KeyID: " + secretKeyFileName,
+					"Delete Public Key",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.QUESTION_MESSAGE
+					
+				) == 0
+			)
+			{
+				try {
+
+					if(Files.deleteIfExists(Paths.get("./secret-keys/" + secretKeyFileName + ".asc")))
+					{
+						JOptionPane.showMessageDialog(
+								this.frame, 
+								"Secret Key successfully deleted!\n" +
+								name + " <"+ email +"> KeyID: " + secretKeyFileName,
+								"Secret Key Deleted",
+								JOptionPane.INFORMATION_MESSAGE		
+						);
+						
+						KeyManager.getInstance().removeSecretKey(secretKeyFileName);
+						DefaultTableModel model = (DefaultTableModel)secretKeyRingTable.getModel();
+						model.removeRow(this.secretKeyRingTable.getSelectedRow());
+						
+					}
+
+				} catch (Exception e) {
+					e.printStackTrace();
+					JOptionPane.showMessageDialog(
+							this.frame, 
+							"Error while deleting Public Key!",
+							"Export error",
+							JOptionPane.ERROR_MESSAGE
+					);
+				}
+				
+			}
+			
+			
+		}
+	
+	}
+	
+
 
 	
 	

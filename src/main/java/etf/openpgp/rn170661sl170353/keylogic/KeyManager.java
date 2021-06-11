@@ -169,6 +169,8 @@ public class KeyManager {
 			        					new JcaKeyFingerprintCalculator()
 			        			)
 	        			);
+			        	
+			        	inputStream.close();
 			        	 		         
 			        }
     			}
@@ -207,6 +209,8 @@ public class KeyManager {
 			        					new JcaKeyFingerprintCalculator()
 			        			)
 	        			);
+			        	
+			        	inputStream.close();
 			        	 		         
 			        }
     			}
@@ -274,8 +278,7 @@ public class KeyManager {
 		PGPPublicKeyRing pgpPublicKeyRing = new PGPPublicKeyRing(PGPUtil.getDecoderStream(inputStream), new JcaKeyFingerprintCalculator());
         this.publicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingCollection, pgpPublicKeyRing);
         
-        File newPublicKeyFile = new File("./public-keys/" + publicKeyFile.getName());
-        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(newPublicKeyFile));
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream("./public-keys/" + publicKeyFile.getName()));
         
         inputStream.reset();
         
@@ -289,6 +292,7 @@ public class KeyManager {
         inputStream.close();
         outputStream.close(); 
 	}
+
 	
 	public void importSecretKeyFromFile(File secretKeyFile) throws Exception
 	{
@@ -310,6 +314,25 @@ public class KeyManager {
         
         inputStream.close();
         outputStream.close(); 
+	}
+
+	
+	
+	public void removePublicKey(String publicKeyId) throws Exception
+	{
+		
+		this.publicKeyRingCollection = PGPPublicKeyRingCollection.removePublicKeyRing(
+				this.publicKeyRingCollection, 
+				this.publicKeyRingCollection.getPublicKeyRing(Long.parseUnsignedLong(publicKeyId, 16))
+		);
+		
+	}
+
+	public void removeSecretKey(String secretKeyId) throws Exception{
+		this.secretKeyRingCollection = PGPSecretKeyRingCollection.removeSecretKeyRing(
+				this.secretKeyRingCollection, 
+				this.secretKeyRingCollection.getSecretKeyRing(Long.parseUnsignedLong(secretKeyId, 16))
+		);	
 	}
     
     
