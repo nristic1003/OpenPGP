@@ -116,7 +116,7 @@ public class Encrypt {
 				 
 			}else {
 	            if (isZipped) {
-	            	compressedOS = new PGPCompressedDataGenerator(PGPCompressedData.ZIP).open(encryptedFileStream, new byte[4096]);
+	            	compressedOS = new PGPCompressedDataGenerator(PGPCompressedData.ZIP).open(encryptedFileStream, new byte[8192]);
 
 	            } else {
 	            	compressedOS = encryptedFileStream;
@@ -136,7 +136,8 @@ public class Encrypt {
 				signGen.generateOnePassVersion(true).encode(compressedOS);
 			}
 			
-			OutputStream literalOut = new PGPLiteralDataGenerator().open(compressedOS, PGPLiteralData.BINARY, selectedFile.getName(), new Date(), new byte[8192]);
+			OutputStream literalOut = new PGPLiteralDataGenerator().open(compressedOS, PGPLiteralData.BINARY,
+					selectedFile.getName(), new Date(), new byte[8192]);
 					  
 					  
 					  // read input file and write to target file using a buffer
@@ -148,6 +149,10 @@ public class Encrypt {
 						   signGen.update(buf, 0, len);
 					  }
 			
+					  
+					  literalOut.close();
+					  fileToEncryptStream.close();
+					  
 				      if (pgpSecretKey!=null) {
 				    	  signGen.generate().encode(compressedOS);
 				        }
@@ -157,16 +162,7 @@ public class Encrypt {
 				        }
 				        
 				        encryptedFileStream.close();
-				
-			
-			
-				 
-				
-			
-			 
-			
-			
-			
+					
 			
 			
 		} catch (Exception e) {

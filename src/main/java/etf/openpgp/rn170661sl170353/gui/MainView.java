@@ -188,7 +188,7 @@ public class MainView {
 		
 		//Bouncy Castle Provider
         Security.addProvider(new BouncyCastleProvider());
-//        KeyManager.getInstance().generateDSAElgamalKeyPair("kalu", "kalu@gmail.com", "kalu123", 1024, 1024);
+       // KeyManager.getInstance().generateDSAElgamalKeyPair("test", "test@gmail.com", "123", 1024, 1024);
         KeyManager.getInstance().initPublicKeyRingCollection();
         KeyManager.getInstance().initSecretKeyRingCollection();
         initPublicKeyTable(KeyManager.getInstance().getPublicKeyRingCollection());
