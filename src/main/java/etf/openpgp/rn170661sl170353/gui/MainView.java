@@ -678,37 +678,59 @@ public class MainView{
 					2
 			);
 			
-			if(JOptionPane.showConfirmDialog(
-					this.frame,
-					"Are you shure you want delete\n" + 
-					name + " <"+ email +"> KeyID: " + secretKeyFileName,
-					"Delete Public Key",
-					JOptionPane.YES_NO_OPTION,
-					JOptionPane.QUESTION_MESSAGE
-					
-				) == 0
-			)
-			{
-				try {
-
-					if(Files.deleteIfExists(Paths.get("./secret-keys/" + secretKeyFileName + ".asc")))
-					{
-						JOptionPane.showMessageDialog(
-								this.frame, 
-								"Secret Key successfully deleted!\n" +
-								name + " <"+ email +"> KeyID: " + secretKeyFileName,
-								"Secret Key Deleted",
-								JOptionPane.INFORMATION_MESSAGE		
-						);
-						
-						KeyManager.getInstance().removeSecretKey(secretKeyFileName);
-						DefaultTableModel model = (DefaultTableModel)secretKeyRingTable.getModel();
-						model.removeRow(this.secretKeyRingTable.getSelectedRow());
-						
-					}
-
+			
+			
+			
+			 char[] password;
+			  JPanel panel = new JPanel(); JLabel label = new JLabel("Enter a password:");
+			  JPasswordField pass = new JPasswordField(10); panel.add(label);
+			  panel.add(pass); String[] options = new String[]{"OK", "Cancel"}; 
+			  int option = JOptionPane.showOptionDialog(null, panel, "Secret Key Password Input",
+			  JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[1]);
+			  if(option == 0) // pressing OK button 
+			  { 
+				  password = pass.getPassword();
+	
+				  PGPSecretKey pgpSecretKey = KeyManager.getInstance().readSecretKeyFromFile(secretKeyFileName);
+				  PGPPrivateKey privateKey = null;
+				
+				 try
+				 {
+				 	privateKey = pgpSecretKey.extractPrivateKey(
+						 new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(password));
+			
+			
+			 	 	if(JOptionPane.showConfirmDialog(
+			 	 			this.frame,
+							"Are you shure you want delete\n" + 
+							name + " <"+ email +"> KeyID: " + secretKeyFileName,
+							"Delete Public Key",
+							JOptionPane.YES_NO_OPTION,
+							JOptionPane.QUESTION_MESSAGE
+							
+						) == 0
+					)
+			 	 	{
+						if(Files.deleteIfExists(Paths.get("./secret-keys/" + secretKeyFileName + ".asc")))
+						{
+							JOptionPane.showMessageDialog(
+									this.frame, 
+									"Secret Key successfully deleted!\n" +
+									name + " <"+ email +"> KeyID: " + secretKeyFileName,
+									"Secret Key Deleted",
+									JOptionPane.INFORMATION_MESSAGE		
+							);
+							
+							KeyManager.getInstance().removeSecretKey(secretKeyFileName);
+							DefaultTableModel model = (DefaultTableModel)secretKeyRingTable.getModel();
+							model.removeRow(this.secretKeyRingTable.getSelectedRow());
+							
+						}
+			 	 		
+			 	 	}
+			 	 	
 				} catch (Exception e) {
-					e.printStackTrace();
+//					e.printStackTrace();
 					JOptionPane.showMessageDialog(
 							this.frame, 
 							"Error while deleting Public Key!",
