@@ -13,6 +13,8 @@ import javax.swing.JTable;
 import javax.swing.SwingUtilities;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.JPanel;
+import javax.swing.JPasswordField;
+
 import java.awt.GridLayout;
 import java.security.Security;
 import java.util.Iterator;
@@ -22,19 +24,28 @@ import javax.swing.table.DefaultTableModel;
 import javax.swing.JScrollPane;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import org.bouncycastle.openpgp.PGPException;
+import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
+import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 
 import etf.openpgp.rn170661sl170353.keylogic.KeyManager;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 
 
@@ -130,9 +141,19 @@ public class MainView{
 		menuBar.add(mnNewMenu_2);
 		
 		JMenuItem mntmNewMenuItem_2 = new JMenuItem("Export Public Key");
+		mntmNewMenuItem_2.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				exportPublicKey();
+			}
+		});
 		mnNewMenu_2.add(mntmNewMenuItem_2);
 		
 		JMenuItem mntmNewMenuItem_3 = new JMenuItem("Export Secret Key");
+		mntmNewMenuItem_3.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				exportSecretKey();
+			}
+		});
 		mnNewMenu_2.add(mntmNewMenuItem_3);
 		
 		JMenu mnNewMenu_3 = new JMenu("Sign/Encrypt");
@@ -357,8 +378,167 @@ public class MainView{
 			
 		}	
 	}
+	
+	
+	private void exportPublicKey()
+	{
+		if(this.publicKeyRingTable.getSelectedRowCount() > 1 || this.publicKeyRingTable.getSelectedRowCount()<=0)
+		{
+			JOptionPane.showMessageDialog(
+					this.frame, 
+					"Please select signle row in Public Key Table to export Public Key!",
+					"Invalid input",
+					JOptionPane.ERROR_MESSAGE
+			);
+		}
+		else
+		{
+			JFileChooser publicKeyChooser = new JFileChooser();
+			publicKeyChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+			if(publicKeyChooser.showSaveDialog(this.frame) == JFileChooser.APPROVE_OPTION)
+			{
+				String publicKeyFileName = (String)this.publicKeyRingTable.getValueAt(
+						this.publicKeyRingTable.getSelectedRow(),
+						2
+				);
+				
+				try(InputStream inputStream = new BufferedInputStream(
+						new FileInputStream(
+								"./public-keys/" + publicKeyFileName + ".asc"
+						)	
+					);
+					OutputStream outputStream = new BufferedOutputStream(
+							new FileOutputStream(
+								publicKeyChooser.getSelectedFile().getAbsolutePath() + "/" + publicKeyFileName + ".asc"
+							)
+					);
+				)
+				{
+					byte[] buffer = new byte[1024];
+			        int lengthRead;
+			        while ((lengthRead = inputStream.read(buffer)) > 0) {
+			        	outputStream.write(buffer, 0, lengthRead);
+			        	outputStream.flush();
+			        }	
+				}
+				catch (Exception e) {
+					JOptionPane.showMessageDialog(
+							this.frame, 
+							"Error while exporting Public Key!",
+							"Export error",
+							JOptionPane.ERROR_MESSAGE
+					);
+				}
+				
+				JOptionPane.showMessageDialog(
+						this.frame, 
+						"You have exported public key successfully!\n" +
+						"KeyID: " + publicKeyFileName,
+						"Export successfull",
+						JOptionPane.INFORMATION_MESSAGE
+				);
+				
+				
+//				System.out.println(publicKeyChooser.getSelectedFile().getAbsolutePath() + "/" + publicKeyFileName + ".asc");
+				
+				
+			}
 
+		}
+			
+	}
 
+	private void exportSecretKey()
+	{
+		if(this.secretKeyRingTable.getSelectedRowCount() > 1 || this.secretKeyRingTable.getSelectedRowCount()<=0)
+		{
+			JOptionPane.showMessageDialog(
+					this.frame, 
+					"Please select signle row in Secret Key Table to export Secret Key!",
+					"Invalid input",
+					JOptionPane.ERROR_MESSAGE
+			);
+		}
+		else
+		{
+			  char[] password;
+			  JPanel panel = new JPanel(); JLabel label = new JLabel("Enter a password:");
+			  JPasswordField pass = new JPasswordField(10); panel.add(label);
+			  panel.add(pass); String[] options = new String[]{"OK", "Cancel"}; 
+			  int option = JOptionPane.showOptionDialog(null, panel, "Secret Key Password Input",
+			  JOptionPane.NO_OPTION, JOptionPane.PLAIN_MESSAGE, null, options, options[1]);
+			  if(option == 0) // pressing OK button 
+			  { 
+				  password = pass.getPassword();
+				  String secretKeyFileName = (String)this.secretKeyRingTable.getValueAt(
+							this.secretKeyRingTable.getSelectedRow(),
+							2
+				  );
+				  PGPSecretKey pgpSecretKey = KeyManager.getInstance().readSecretKeyFromFile(secretKeyFileName);
+				  PGPPrivateKey privateKey = null;
+
+					
+					
+				 try {
+					 privateKey = pgpSecretKey.extractPrivateKey(
+							 new JcePBESecretKeyDecryptorBuilder().setProvider("BC").build(password)
+					 );
+					 JFileChooser secretKeyChooser = new JFileChooser();
+					 secretKeyChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+						if(secretKeyChooser.showSaveDialog(this.frame) == JFileChooser.APPROVE_OPTION)
+						{
+							 InputStream inputStream = new BufferedInputStream(
+										new FileInputStream(
+												"./secret-keys/" + secretKeyFileName + ".asc"
+										)	
+									);
+							 OutputStream outputStream = new BufferedOutputStream(
+									new FileOutputStream(
+											secretKeyChooser.getSelectedFile().getAbsolutePath() + "/" + secretKeyFileName + ".asc"
+									)
+							 );
+							 
+							 byte[] buffer = new byte[1024];
+							 int lengthRead;
+							 while ((lengthRead = inputStream.read(buffer)) > 0) {
+								 outputStream.write(buffer, 0, lengthRead);
+								 outputStream.flush();
+							 }
+							 
+							 inputStream.close();
+							 outputStream.close();
+							 
+							 JOptionPane.showMessageDialog(
+									 this.frame, 
+									 "You have exported secret key successfully!\n" +
+									 "KeyID: " + secretKeyFileName,
+									 "Export successfull",
+									 JOptionPane.INFORMATION_MESSAGE
+							);
+							 
+							 
+	
+						}
+
+					 
+				} catch (Exception e) {
+					JOptionPane.showMessageDialog(
+							this.frame, 
+							"Wrong secret key password, try again!",
+							"Wrong password!",
+							JOptionPane.ERROR_MESSAGE
+					);					
+				}
+  
+			  }		
+		}
+		
+		
+		
+		
+	}
+
+	
 
 	
 	
