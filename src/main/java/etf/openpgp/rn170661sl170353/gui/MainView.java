@@ -115,6 +115,15 @@ public class MainView {
 		mnNewMenu_2.add(mntmNewMenuItem_3);
 		
 		JMenu mnNewMenu_3 = new JMenu("Sign/Encrypt");
+		mnNewMenu_3.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+				EncrycptionWizard encWizz = new EncrycptionWizard();
+				encWizz.setVisible(true);
+				
+			}
+		});
 		menuBar.add(mnNewMenu_3);
 		
 		JMenu mnNewMenu_4 = new JMenu("Decrypt/Verify");
@@ -225,6 +234,8 @@ public class MainView {
 	{
 		try 
 		{
+			if(!publicKey.getUserIDs().hasNext())
+				return;
 			String[] userIdentity = publicKey.getUserIDs().next().split(" ");
 			Object[] row = 
 			{
@@ -249,6 +260,8 @@ public class MainView {
 	{
 		try 
 		{
+			if(!secretKey.getUserIDs().hasNext())
+				return;
 			String[] userIdentity = secretKey.getUserIDs().next().split(" ");
 			Object[] row = 
 			{
