@@ -8,8 +8,12 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JPanel;
 import javax.swing.border.EmptyBorder;
+
+import etf.openpgp.rn170661sl170353.keylogic.KeyManager;
+
 import java.awt.GridLayout;
 import javax.swing.JLabel;
+import javax.swing.JOptionPane;
 import javax.swing.JTextField;
 import javax.swing.JComboBox;
 import javax.swing.DefaultComboBoxModel;
@@ -18,12 +22,20 @@ import java.awt.Font;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 
-public class KeyPairWizardDialog extends JDialog {
+public class KeyPairWizardDialog extends JDialog implements ActionListener{
 
 	private final JPanel contentPanel = new JPanel();
+	private MainView mainView;
+	
 	private JTextField emailField;
 	private JTextField nameField;
 	private JPasswordField passphraseField;
+	private JComboBox dsaKeySizeComboBox;
+	private JComboBox elgamalKeySizeComboBox;
+	
+	
+	private JButton cancelButton;
+	private JButton createButton;
 
 	/**
 	 * Launch the application.
@@ -41,7 +53,9 @@ public class KeyPairWizardDialog extends JDialog {
 	/**
 	 * Create the dialog.
 	 */
-	public KeyPairWizardDialog() {
+	public KeyPairWizardDialog(MainView mainView) {
+		super(mainView.getFrame(), true);
+		this.mainView = mainView;
 		setFont(new Font("Dialog", Font.PLAIN, 11));
 		setTitle("Key Pair Wizard");
 		setBounds(100, 100, 450, 300);
@@ -87,7 +101,7 @@ public class KeyPairWizardDialog extends JDialog {
 			contentPanel.add(dsaKeySizeLabel);
 		}
 		{
-			JComboBox dsaKeySizeComboBox = new JComboBox();
+			dsaKeySizeComboBox = new JComboBox();
 			dsaKeySizeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
 			dsaKeySizeComboBox.setModel(new DefaultComboBoxModel(new String[] {"1024", "2048"}));
 			contentPanel.add(dsaKeySizeComboBox);
@@ -98,7 +112,7 @@ public class KeyPairWizardDialog extends JDialog {
 			contentPanel.add(elgamalKeySizeLabel);
 		}
 		{
-			JComboBox elgamalKeySizeComboBox = new JComboBox();
+			elgamalKeySizeComboBox = new JComboBox();
 			elgamalKeySizeComboBox.setFont(new Font("Tahoma", Font.PLAIN, 15));
 			elgamalKeySizeComboBox.setModel(new DefaultComboBoxModel(new String[] {"1024", "2048", "4096"}));
 			contentPanel.add(elgamalKeySizeComboBox);
@@ -108,24 +122,63 @@ public class KeyPairWizardDialog extends JDialog {
 			buttonPane.setLayout(new FlowLayout(FlowLayout.RIGHT));
 			getContentPane().add(buttonPane, BorderLayout.SOUTH);
 			{
-				JButton createButton = new JButton("Create");
-				createButton.addActionListener(new ActionListener() {
-					public void actionPerformed(ActionEvent e) {
-						System.out.println("Hello World!");
-					}
-				});
+				createButton = new JButton("Create");
 				createButton.setFont(new Font("Tahoma", Font.PLAIN, 15));
 				createButton.setActionCommand("OK");
+				createButton.addActionListener(this);
 				buttonPane.add(createButton);
 				getRootPane().setDefaultButton(createButton);
 			}
 			{
-				JButton cancelButton = new JButton("Cancel");
+				cancelButton = new JButton("Cancel");
 				cancelButton.setFont(new Font("Tahoma", Font.PLAIN, 15));
 				cancelButton.setActionCommand("Cancel");
+				cancelButton.addActionListener(this);
 				buttonPane.add(cancelButton);
 			}
 		}
+	}
+
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		if(e.getSource() == cancelButton)
+		{
+			this.dispose();
+		}
+		else if(e.getSource() == createButton)
+		{
+			if(nameField.getText().equals("") || emailField.getText().equals("") || passphraseField.getPassword().length==0)
+			{
+				JOptionPane.showMessageDialog(this, "You must enter all fields!", "Invalid input!", JOptionPane.ERROR_MESSAGE);
+			}
+			else
+			{
+				
+				KeyManager.getInstance().generateDSAElgamalKeyPair(
+						nameField.getText(), 
+						emailField.getText(), 
+						passphraseField.getPassword(), 
+						Integer.parseInt(dsaKeySizeComboBox.getSelectedItem().toString()), 
+						Integer.parseInt(elgamalKeySizeComboBox.getSelectedItem().toString()) 
+				);
+				
+				this.mainView.initSecretKeyTable(KeyManager.getInstance().getSecretKeyRingCollection());
+				this.mainView.initPublicKeyTable(KeyManager.getInstance().getPublicKeyRingCollection());
+				
+				JOptionPane.showMessageDialog(
+						this, 
+						"You have generated new key pair: " + nameField.getText() + " <" + emailField.getText() + ">\n" +
+						"DSA Key Size: " + dsaKeySizeComboBox.getSelectedItem() + "\n" +
+						"ElGamal Key Size: " + elgamalKeySizeComboBox.getSelectedItem(),
+						"Key generated successfully!", 
+						JOptionPane.INFORMATION_MESSAGE
+				);
+				
+				this.dispose();
+
+			}	
+		}
+		
 	}
 
 }

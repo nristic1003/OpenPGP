@@ -1,6 +1,7 @@
 package etf.openpgp.rn170661sl170353.keylogic;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -19,10 +20,8 @@ import java.util.Iterator;
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
 import org.bouncycastle.openpgp.PGPEncryptedData;
-import org.bouncycastle.openpgp.PGPException;
 import org.bouncycastle.openpgp.PGPKeyPair;
 import org.bouncycastle.openpgp.PGPKeyRingGenerator;
-import org.bouncycastle.openpgp.PGPPrivateKey;
 import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPPublicKeyRingCollection;
 import org.bouncycastle.openpgp.PGPPublicKeyRing;
@@ -36,7 +35,6 @@ import org.bouncycastle.openpgp.operator.jcajce.JcaKeyFingerprintCalculator;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPDigestCalculatorProviderBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcaPGPKeyPair;
-import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyEncryptorBuilder;
 
 public class KeyManager {
@@ -84,7 +82,7 @@ public class KeyManager {
    public void generateDSAElgamalKeyPair(
            String name,
            String email,
-           String passPhrase,
+           char[] passPhrase,
            int dsaKeySize,
            int elgamalKeySize
    )
@@ -118,13 +116,14 @@ public class KeyManager {
                    new JcePBESecretKeyEncryptorBuilder(
                            PGPEncryptedData.AES_256,
                            sha1Calc
-                   ).setProvider("BC").build(passPhrase.toCharArray())
+                   ).setProvider("BC").build(passPhrase)
            );
            keyRingGen.addSubKey(elgKeyPair);
 //           PGPSecretKey pgpSecretKey = keyRingGen.generateSecretKeyRing().getSecretKey();
 //           PGPPublicKey pgpPublicKey = keyRingGen.generatePublicKeyRing().getPublicKey();
+           
            PGPSecretKeyRing pgpSecretKeyRing = keyRingGen.generateSecretKeyRing();
-           long keyName = System.currentTimeMillis();
+           PGPPublicKeyRing pgpPublicKeyRing = keyRingGen.generatePublicKeyRing();
            //Izvezemo u .asc fajlove
            OutputStream secretOut = new ArmoredOutputStream(
                    new FileOutputStream("secret-keys/" + Long.toHexString(pgpSecretKeyRing.getSecretKey().getKeyID()).toUpperCase() + ".asc")
@@ -135,8 +134,12 @@ public class KeyManager {
 
            pgpSecretKeyRing.encode(secretOut);
            secretOut.close();
-           keyRingGen.generatePublicKeyRing().encode(publicOut);
+           pgpPublicKeyRing.encode(publicOut);
            publicOut.close();
+           
+           this.secretKeyRingCollection = PGPSecretKeyRingCollection.addSecretKeyRing(secretKeyRingCollection, pgpSecretKeyRing);
+           this.publicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingCollection, pgpPublicKeyRing);
+           
        }
        catch(Exception e)
        {
@@ -262,6 +265,51 @@ public class KeyManager {
 		}
 		
 		return null;
+	}
+	
+	
+	public void importPublicKeyFromFile(File publicKeyFile) throws Exception
+	{
+		InputStream inputStream = new BufferedInputStream(new FileInputStream(publicKeyFile.getAbsolutePath()));
+		PGPPublicKeyRing pgpPublicKeyRing = new PGPPublicKeyRing(PGPUtil.getDecoderStream(inputStream), new JcaKeyFingerprintCalculator());
+        this.publicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingCollection, pgpPublicKeyRing);
+        
+        File newPublicKeyFile = new File("./public-keys/" + publicKeyFile.getName());
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream(newPublicKeyFile));
+        
+        inputStream.reset();
+        
+        byte[] buffer = new byte[1024];
+        int lengthRead;
+        while ((lengthRead = inputStream.read(buffer)) > 0) {
+        	outputStream.write(buffer, 0, lengthRead);
+        	outputStream.flush();
+        }
+        
+        inputStream.close();
+        outputStream.close(); 
+	}
+	
+	public void importSecretKeyFromFile(File secretKeyFile) throws Exception
+	{
+		InputStream inputStream = new BufferedInputStream(new FileInputStream(secretKeyFile.getAbsolutePath()));
+		PGPSecretKeyRing pgpSecretKeyRing = new PGPSecretKeyRing(PGPUtil.getDecoderStream(inputStream), new JcaKeyFingerprintCalculator());
+        this.secretKeyRingCollection = PGPSecretKeyRingCollection.addSecretKeyRing(secretKeyRingCollection, pgpSecretKeyRing);
+        
+
+        OutputStream outputStream = new BufferedOutputStream(new FileOutputStream("./secret-keys/" + secretKeyFile.getName()));
+        
+        inputStream.reset();
+        
+        byte[] buffer = new byte[1024];
+        int lengthRead;
+        while ((lengthRead = inputStream.read(buffer)) > 0) {
+        	outputStream.write(buffer, 0, lengthRead);
+        	outputStream.flush();
+        }
+        
+        inputStream.close();
+        outputStream.close(); 
 	}
     
     

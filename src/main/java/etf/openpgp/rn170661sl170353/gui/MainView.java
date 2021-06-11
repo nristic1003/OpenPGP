@@ -3,12 +3,15 @@ package etf.openpgp.rn170661sl170353.gui;
 import java.awt.EventQueue;
 
 import javax.swing.JDialog;
+import javax.swing.JFileChooser;
 import javax.swing.JFrame;
 import javax.swing.JMenuBar;
 import javax.swing.JMenu;
 import javax.swing.JMenuItem;
+import javax.swing.JOptionPane;
 import javax.swing.JTable;
 import javax.swing.SwingUtilities;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.JPanel;
 import java.awt.GridLayout;
 import java.security.Security;
@@ -31,16 +34,19 @@ import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.io.File;
 
 
 
-public class MainView {
+public class MainView{
 
 	private JFrame frame;
 	private JTable publicKeyRingTable;
 	private JTable secretKeyRingTable;
 	
 //	private KeyPairWizardDialog keyPairWizardDialog;
+	
+ 
 
 	/**
 	 * Launch the application.
@@ -51,6 +57,11 @@ public class MainView {
 		
 	}
 	
+	public JFrame getFrame() {
+		return frame;
+	}
+
+
 	public static void main(String[] args) {
 		EventQueue.invokeLater(new Runnable() {
 			public void run() {
@@ -89,20 +100,30 @@ public class MainView {
 		mnNewMenu.addMouseListener(new MouseAdapter() {
 			@Override
 			public void mouseClicked(MouseEvent e) {
-				KeyPairWizardDialog keyPairWizardDialog = new KeyPairWizardDialog();
+				KeyPairWizardDialog keyPairWizardDialog = new KeyPairWizardDialog(MainView.this);
 				keyPairWizardDialog.setVisible(true);
 			}
 		});
-
 		menuBar.add(mnNewMenu);
 		
 		JMenu mnNewMenu_1 = new JMenu("Import Key ");
 		menuBar.add(mnNewMenu_1);
 		
 		JMenuItem mntmNewMenuItem = new JMenuItem("Import Public Key");
+		mntmNewMenuItem.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				importPublicKey(); 
+				
+			}
+		});
 		mnNewMenu_1.add(mntmNewMenuItem);
 		
 		JMenuItem mntmNewMenuItem_1 = new JMenuItem("Import Secret Key");
+		mntmNewMenuItem_1.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				importSecretKey();
+			}
+		});
 		mnNewMenu_1.add(mntmNewMenuItem_1);
 		
 		JMenu mnNewMenu_2 = new JMenu("Export Key");
@@ -200,8 +221,11 @@ public class MainView {
 		
 	}
 	
-	private void initPublicKeyTable(PGPPublicKeyRingCollection pgpPublicKeyRingCollection)
+	public void initPublicKeyTable(PGPPublicKeyRingCollection pgpPublicKeyRingCollection)
 	{
+		DefaultTableModel model = (DefaultTableModel) publicKeyRingTable.getModel();
+		model.setRowCount(0);
+		
 		Iterator<PGPPublicKeyRing> pgpPublicKeyRingIterator = pgpPublicKeyRingCollection.getKeyRings();
 		while(pgpPublicKeyRingIterator.hasNext())
 		{
@@ -215,8 +239,11 @@ public class MainView {
 		}
 	}
 	
-	private void initSecretKeyTable(PGPSecretKeyRingCollection pgpSecretKeyRingCollection)
+	public void initSecretKeyTable(PGPSecretKeyRingCollection pgpSecretKeyRingCollection)
 	{
+		DefaultTableModel model = (DefaultTableModel) secretKeyRingTable.getModel();
+		model.setRowCount(0);
+		
 		Iterator<PGPSecretKeyRing> pgpSecretKeyRingIterator = pgpSecretKeyRingCollection.getKeyRings();
 		while(pgpSecretKeyRingIterator.hasNext())
 		{
@@ -282,6 +309,57 @@ public class MainView {
 			e.printStackTrace();
 		}
 	}
+	
+	private void importPublicKey()
+	{
+		JFileChooser publicKeyFileChooser = new JFileChooser();
+		FileNameExtensionFilter ascFilter = new FileNameExtensionFilter("ASC File", "asc");
+		
+		publicKeyFileChooser.setFileFilter(ascFilter);
+		publicKeyFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if(publicKeyFileChooser.showOpenDialog(this.frame)==JFileChooser.APPROVE_OPTION)
+		{
+			File publicKeyFile = publicKeyFileChooser.getSelectedFile();
+			try 
+			{
+				KeyManager.getInstance().importPublicKeyFromFile(publicKeyFile);
+				this.initPublicKeyTable(KeyManager.getInstance().getPublicKeyRingCollection());
+				
+			}
+			catch(Exception e)
+			{
+				JOptionPane.showMessageDialog(this.frame, "Invalid input file!", "Invalid input", JOptionPane.ERROR_MESSAGE);
+			}
+			
+		}
+	}
+	
+	private void importSecretKey()
+	{
+		JFileChooser secretKeyFileChooser = new JFileChooser();
+		FileNameExtensionFilter ascFilter = new FileNameExtensionFilter("ASC File", "asc");
+		
+		secretKeyFileChooser.setFileFilter(ascFilter);
+		secretKeyFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if(secretKeyFileChooser.showOpenDialog(this.frame)==JFileChooser.APPROVE_OPTION)
+		{
+			File secretKeyFile = secretKeyFileChooser.getSelectedFile();
+			try 
+			{
+				KeyManager.getInstance().importSecretKeyFromFile(secretKeyFile);
+				this.initSecretKeyTable(KeyManager.getInstance().getSecretKeyRingCollection());
+				
+			}
+			catch(Exception e)
+			{
+				JOptionPane.showMessageDialog(this.frame, "Invalid input file!", "Invalid input", JOptionPane.ERROR_MESSAGE);
+			}
+			
+		}	
+	}
+
+
+
 	
 	
 }
