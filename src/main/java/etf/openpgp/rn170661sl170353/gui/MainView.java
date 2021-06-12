@@ -36,6 +36,7 @@ import org.bouncycastle.openpgp.PGPSecretKeyRing;
 import org.bouncycastle.openpgp.PGPSecretKeyRingCollection;
 import org.bouncycastle.openpgp.operator.jcajce.JcePBESecretKeyDecryptorBuilder;
 
+import etf.openpgp.rn170661sl170353.keylogic.Decrypt;
 import etf.openpgp.rn170661sl170353.keylogic.KeyManager;
 import java.awt.event.ActionListener;
 import java.awt.event.ActionEvent;
@@ -177,6 +178,28 @@ public class MainView{
 		menuBar.add(mnNewMenu_3);
 		
 		JMenu mnNewMenu_4 = new JMenu("Decrypt/Verify");
+		mnNewMenu_4.addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				
+				JFileChooser fileChooser = new JFileChooser();
+				FileNameExtensionFilter gpgFilter = new FileNameExtensionFilter("GPG File", "gpg");
+				
+				fileChooser.setFileFilter(gpgFilter);
+				fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+				if(fileChooser.showOpenDialog(MainView.this.frame)==JFileChooser.APPROVE_OPTION) {
+					try {
+						Decrypt.getInstance().decryptFile(fileChooser.getSelectedFile());
+					} catch (Exception e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				}
+				
+				
+			}
+		});
+		
 		menuBar.add(mnNewMenu_4);
 		frame.getContentPane().setLayout(new GridLayout(2, 1, 0, 0));
 		

@@ -13,6 +13,10 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 
+import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
+import javax.swing.filechooser.FileSystemView;
+
 import org.bouncycastle.bcpg.ArmoredOutputStream;
 import org.bouncycastle.bcpg.CompressionAlgorithmTags;
 import org.bouncycastle.bcpg.HashAlgorithmTags;
@@ -79,7 +83,24 @@ public class Encrypt {
 		
 		try {
 			InputStream fileToEncryptStream = new FileInputStream(selectedFile.getAbsolutePath());
-			OutputStream encryptedFileStream = new BufferedOutputStream(new FileOutputStream(selectedFile.getName() + ".gpg"));
+			JFileChooser chooser = new JFileChooser();
+			chooser.setCurrentDirectory(new java.io.File("."));
+			chooser.setDialogTitle("Save as");
+			chooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+			chooser.setAcceptAllFileFilterUsed(false);
+
+			String finalFilePath;
+			
+			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+			  System.out.println("getCurrentDirectory(): " + chooser.getCurrentDirectory());
+			  
+			  finalFilePath = chooser.getSelectedFile().toString();
+			  System.out.println(finalFilePath);
+			} else {
+			  System.out.println("No Selection ");
+			  return;
+			}
+			OutputStream encryptedFileStream = new BufferedOutputStream(new FileOutputStream(finalFilePath  + "/" + selectedFile.getName() + ".gpg"));
 			
 			
 			if(radix64)
@@ -163,6 +184,7 @@ public class Encrypt {
 				        
 				        encryptedFileStream.close();
 					
+				        JOptionPane.showMessageDialog(null, "File is saved!");
 			
 			
 		} catch (Exception e) {
@@ -175,6 +197,8 @@ public class Encrypt {
 		  
 		
 	}
+	
+	
 	
 	
 }
