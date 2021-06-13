@@ -86,12 +86,12 @@ public class Encrypt {
 			JFileChooser chooser = new JFileChooser();
 			chooser.setCurrentDirectory(new java.io.File("."));
 			chooser.setDialogTitle("Save as");
-			chooser.setFileSelectionMode(JFileChooser.SAVE_DIALOG);
+			int userSelection = chooser.showSaveDialog(null);
 			chooser.setAcceptAllFileFilterUsed(false);
 
 			String finalFilePath;
 			
-			if (chooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
+			if (userSelection == JFileChooser.APPROVE_OPTION) {
 			  System.out.println("getCurrentDirectory(): " + chooser.getCurrentDirectory());
 			  
 			  finalFilePath = chooser.getSelectedFile().toString();
@@ -100,7 +100,7 @@ public class Encrypt {
 			  System.out.println("No Selection ");
 			  return;
 			}
-			OutputStream encryptedFileStream = new BufferedOutputStream(new FileOutputStream(finalFilePath  + "/" + selectedFile.getName() + ".gpg"));
+			OutputStream encryptedFileStream = new BufferedOutputStream(new FileOutputStream(finalFilePath  + ".gpg"));
 			
 			
 			if(radix64)
