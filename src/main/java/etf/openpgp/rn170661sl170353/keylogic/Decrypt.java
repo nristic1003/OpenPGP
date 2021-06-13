@@ -52,6 +52,7 @@ public class Decrypt {
 	}
 	
 	
+	
 	public static Decrypt getInstance() {
 		if(instance==null)
 			instance = new Decrypt();	
@@ -73,7 +74,7 @@ public class Decrypt {
 			System.out.println("PGP Object :  " + o);
 			
 			
-			if(o instanceof PGPCompressedData || o instanceof PGPSignatureList || o instanceof PGPLiteralData)
+			if(o instanceof PGPCompressedData || o instanceof PGPSignatureList || o instanceof PGPLiteralData || o instanceof PGPOnePassSignatureList)
 			{
 				noEncrypt(o, objectFactory);
 				return;
@@ -113,26 +114,26 @@ public class Decrypt {
 					}
 			}
 			
-			PublicKeyDataDecryptorFactory b = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").setContentProvider("BC").build(sKey);
+			PublicKeyDataDecryptorFactory b = new JcePublicKeyDataDecryptorFactoryBuilder().setProvider("BC").build(sKey);
 			InputStream clear = pbe.getDataStream(b);
 			PGPObjectFactory plainFact = new PGPObjectFactory(clear, new JcaKeyFingerprintCalculator());
 
 			Object message = plainFact.nextObject();
 			
-			noEncrypt(message, objectFactory);
+			noEncrypt(message, plainFact);
 			
 				if (pbe.isIntegrityProtected()) {
 					if (!pbe.verify()) {
 						throw new PGPException("Message failed integrity check");
 					}else {
-						System.out.println("Integrity is proteceted");
+						  JOptionPane.showMessageDialog(null,"Integrity confirmed"  , "Integrity" , JOptionPane.INFORMATION_MESSAGE);
 					}
+				}else
+				{
+					  JOptionPane.showMessageDialog(null,"Integrity not confirmed"  , "Integrity" , JOptionPane.INFORMATION_MESSAGE);
 				}
 			}
 		
-	
-	
-
 	
 	
 	public void noEncrypt(Object o, PGPObjectFactory fac) throws PGPException, IOException
@@ -148,16 +149,16 @@ public class Decrypt {
 			
 		}
 		
-		
+		PGPPublicKey signPublicKey =null;
 		if(o instanceof PGPOnePassSignatureList)
 		{
 			 calculatedSignature = ((PGPOnePassSignatureList) o).get(0);
 			 System.out.println("calculated sig: " + calculatedSignature);
 			 PGPPublicKeyRingCollection pkc = KeyManager.getInstance().getPublicKeyRingCollection();
-			 PGPPublicKey signPublicKey = pkc.getPublicKey(calculatedSignature.getKeyID());
+			  signPublicKey = pkc.getPublicKey(calculatedSignature.getKeyID());
 			 calculatedSignature.init(new JcaPGPContentVerifierBuilderProvider().setProvider("BC"), signPublicKey);
 			 o = fac.nextObject();
-			System.out.println("PGP Object :  " + o);
+			 System.out.println("PGP Object :  " + o);
 		}
 		
 		JFileChooser publicKeyChooser = new JFileChooser();
@@ -192,9 +193,17 @@ public class Decrypt {
 			   System.out.println("verification signature is " + messageSignature);
 			 
 			   if (!calculatedSignature.verify(messageSignature)) {
-				    throw new RuntimeException("signature verification failed");
+				   JOptionPane.showMessageDialog(null,"Verification not confirmed"  , "Verification" , JOptionPane.INFORMATION_MESSAGE);
 				   }else
 				   {
+					   
+					  Iterator<String> users = signPublicKey.getUserIDs();
+					  while(users.hasNext())
+					  {
+						  JOptionPane.showMessageDialog(null,"Message is signed by : " + users.next() , "Verification" , JOptionPane.INFORMATION_MESSAGE);
+					  }
+					   
+					   
 					   System.out.println("Verification");
 				   }
 			 	 

@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.List;
 
 import javax.swing.JFileChooser;
@@ -34,6 +35,7 @@ import org.bouncycastle.openpgp.PGPPublicKey;
 import org.bouncycastle.openpgp.PGPSecretKey;
 import org.bouncycastle.openpgp.PGPSignature;
 import org.bouncycastle.openpgp.PGPSignatureGenerator;
+import org.bouncycastle.openpgp.PGPSignatureSubpacketGenerator;
 import org.bouncycastle.openpgp.operator.bc.BcPGPContentSignerBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPGPDataEncryptorBuilder;
 import org.bouncycastle.openpgp.operator.bc.BcPublicKeyKeyEncryptionMethodGenerator;
@@ -55,7 +57,7 @@ public class Encrypt {
 	}
 	
 	
-	public void ecnryptData(List<String> publicKeys, 
+	public void ecnryptData(List<String> publicKeys, boolean integrity,
 			boolean radix64, boolean isZipped, String encryptAlg, File selectedFile, String privateKeyID, char[] passphrase ) {
 		
 		PGPSecretKey pgpSecretKey = null;
@@ -110,14 +112,16 @@ public class Encrypt {
 			
 			int alg = Integer.parseInt(encryptAlg);
 			
+			
+			OutputStream e = encryptedFileStream;
 			OutputStream compressedOS;
 			
-			 PGPEncryptedDataGenerator encryptedDataGenerator = null;
+		    PGPEncryptedDataGenerator encryptedDataGenerator = null;
 			
 			if(alg!=SymmetricKeyAlgorithmTags.NULL)
 			{
 				encryptedDataGenerator = new PGPEncryptedDataGenerator(new BcPGPDataEncryptorBuilder(alg).
-						 setWithIntegrityPacket(true).
+						 setWithIntegrityPacket(integrity).
 						 setSecureRandom(new SecureRandom()));
 				 
 				 for(PGPPublicKey pc : pgpPublicKeys)
@@ -125,36 +129,38 @@ public class Encrypt {
 					 encryptedDataGenerator.addMethod(new BcPublicKeyKeyEncryptionMethodGenerator(pc));
 				 } 
 				 
-				 if(isZipped)
-				 {
-					 compressedOS = new PGPCompressedDataGenerator(PGPCompressedData.ZIP).open(encryptedDataGenerator.open(encryptedFileStream, 
-							 new byte[8192]), new byte[8192]);
-				 }else {
-					 compressedOS = encryptedDataGenerator.open(encryptedFileStream, new byte[8192]);
-				 }
+				 e = encryptedDataGenerator.open(encryptedFileStream, new byte[8192]);
+				 		
 				 
-				
-				 
-			}else {
+			}
+			
 	            if (isZipped) {
-	            	compressedOS = new PGPCompressedDataGenerator(PGPCompressedData.ZIP).open(encryptedFileStream, new byte[8192]);
+	            	compressedOS = new PGPCompressedDataGenerator(PGPCompressedData.ZIP).open(e, new byte[8192]);
 
 	            } else {
-	            	compressedOS = encryptedFileStream;
+	            	compressedOS = e;
 	            }
 
-	        }
+	        
 			
 			 PGPSignatureGenerator signGen = null;
 			
-		
-			 
-			 
+				 
 			if(pgpSecretKey!=null)
 			{
 				signGen = new PGPSignatureGenerator(new BcPGPContentSignerBuilder(privateKey.getPublicKeyPacket().getAlgorithm(), HashAlgorithmTags.SHA1));
+			
 				signGen.init(PGPSignature.BINARY_DOCUMENT, privateKey);
-				signGen.generateOnePassVersion(true).encode(compressedOS);
+				  for (
+				  Iterator i = pgpSecretKey.getPublicKey().getUserIDs(); i.hasNext();) {
+				   String userId = (String) i.next();
+				   PGPSignatureSubpacketGenerator spGen = new PGPSignatureSubpacketGenerator();
+				   spGen.setSignerUserID(false, userId);
+				   signGen.setHashedSubpackets(spGen.generate());
+				   // Just the first one!
+				   break;
+				  }
+				signGen.generateOnePassVersion(false).encode(compressedOS);
 			}
 			
 			OutputStream literalOut = new PGPLiteralDataGenerator().open(compressedOS, PGPLiteralData.BINARY,
@@ -172,20 +178,21 @@ public class Encrypt {
 			
 					  
 					  literalOut.close();
-					  fileToEncryptStream.close();
+					
 					  
 				      if (pgpSecretKey!=null) {
 				    	  signGen.generate().encode(compressedOS);
 				        }
 				      compressedOS.close();
+				      e.close();
 				        if (alg!=SymmetricKeyAlgorithmTags.NULL) {
 				        	encryptedDataGenerator.close();
 				        }
 				        
 				        encryptedFileStream.close();
-					
+				        fileToEncryptStream.close();
 				        JOptionPane.showMessageDialog(null, "File is saved!");
-			
+				        
 			
 		} catch (Exception e) {
 			// TODO Auto-generated catch block

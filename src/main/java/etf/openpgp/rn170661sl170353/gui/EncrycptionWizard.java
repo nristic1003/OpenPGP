@@ -46,7 +46,7 @@ public class EncrycptionWizard extends JDialog {
 	private File fileToEncrypt;
 	private JFileChooser fileChooser;
 	private JLabel selectedFileName;
-	private JCheckBox radix64, zip;
+	private JCheckBox radix64, zip, integrity;
 	private ButtonGroup bg;
 
 	/**
@@ -163,6 +163,11 @@ public class EncrycptionWizard extends JDialog {
 			}
 			{
 				JButton cancelButton = new JButton("Cancel");
+				cancelButton.addActionListener(new ActionListener() {
+					public void actionPerformed(ActionEvent e) {
+						EncrycptionWizard.this.dispose();
+					}
+				});
 				cancelButton.setActionCommand("Cancel");
 				buttonPane.add(cancelButton);
 			}
@@ -173,6 +178,10 @@ public class EncrycptionWizard extends JDialog {
 		bg.add(trippleDES);
 		bg.add(idea);
 		bg.add(noEnc);
+		
+	    integrity = new JCheckBox("Integrity");
+		integrity.setBounds(176, 216, 97, 23);
+		contentPanel.add(integrity);
 
 	}
 	
@@ -206,7 +215,7 @@ public class EncrycptionWizard extends JDialog {
 
 			}
 			
-			  Encrypt.getInstance().ecnryptData(publicKeysList.getSelectedValuesList(),
+			  Encrypt.getInstance().ecnryptData(publicKeysList.getSelectedValuesList(), integrity.isSelected(),
 					  radix64.isSelected(), zip.isSelected(), bg.getSelection().getActionCommand(),
 					  fileToEncrypt, signatureComboBox.getSelectedItem().toString(), password);
 			
