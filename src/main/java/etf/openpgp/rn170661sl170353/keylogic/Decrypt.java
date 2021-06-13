@@ -11,6 +11,7 @@ import java.io.OutputStream;
 import java.security.NoSuchProviderException;
 import java.util.Iterator;
 
+import javax.swing.JFileChooser;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -117,65 +118,9 @@ public class Decrypt {
 			PGPObjectFactory plainFact = new PGPObjectFactory(clear, new JcaKeyFingerprintCalculator());
 
 			Object message = plainFact.nextObject();
-			System.out.println("PGP Object :  " + message);
 			
-			if (message instanceof  PGPCompressedData) {
-				PGPCompressedData cData = (PGPCompressedData) message;
-				objectFactory = new PGPObjectFactory(cData.getDataStream(), new JcaKeyFingerprintCalculator());
-				message = objectFactory.nextObject();
-				System.out.println("PGP Object :  " + message);
-				
-				
-			}
+			noEncrypt(message, objectFactory);
 			
-			PGPOnePassSignature calculatedSignature = null;
-			if(message instanceof PGPOnePassSignatureList)
-			{
-				 calculatedSignature = ((PGPOnePassSignatureList) message).get(0);
-				 System.out.println("calculated sig: " + calculatedSignature);
-				 PGPPublicKeyRingCollection pkc = KeyManager.getInstance().getPublicKeyRingCollection();
-				 PGPPublicKey signPublicKey = pkc.getPublicKey(calculatedSignature.getKeyID());
-				 calculatedSignature.init(new JcaPGPContentVerifierBuilderProvider().setProvider("BC"), signPublicKey);
-				message = objectFactory.nextObject();
-				System.out.println("PGP Object :  " + message);
-				 
-			}
-		
-			
-			OutputStream out = new FileOutputStream("decryptedMessage.txt");
-			PGPPublicKeyRingCollection pc = KeyManager.getInstance().getPublicKeyRingCollection();
-			  
-			if (message instanceof  PGPLiteralData) {
-				System.out.println("Literal");
-				PGPLiteralData ld = (PGPLiteralData) message;
-				InputStream unc = ld.getInputStream();
-				int ch;
-				while ((ch = unc.read()) >= 0) {
-					if(calculatedSignature!=null)
-						calculatedSignature.update((byte)ch);
-					out.write(ch);
-					
-				}
-			}else {
-				System.out.println("Nemam nista");
-			}
-			
-			 if (calculatedSignature != null) {
-				 PGPSignatureList signatureList = (PGPSignatureList) objectFactory.nextObject();
-				 System.out.println("PGP Object :  " + message);
-				   System.out.println("signature list (" + signatureList.size() + " sigs) is " + signatureList);
-				   PGPSignature messageSignature = (PGPSignature) signatureList.get(0);
-				   System.out.println("verification signature is " + messageSignature);
-				 
-				   if (!calculatedSignature.verify(messageSignature)) {
-					    throw new RuntimeException("signature verification failed");
-					   }else
-					   {
-						   System.out.println("Verification");
-					   }
-				 	 
-			 }
-				
 				if (pbe.isIntegrityProtected()) {
 					if (!pbe.verify()) {
 						throw new PGPException("Message failed integrity check");
@@ -215,7 +160,15 @@ public class Decrypt {
 			System.out.println("PGP Object :  " + o);
 		}
 		
-		OutputStream out = new FileOutputStream("decryptedMessage.txt");
+		JFileChooser publicKeyChooser = new JFileChooser();
+		publicKeyChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+		String desPath=".";
+		if(publicKeyChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION)
+		{
+			 desPath =publicKeyChooser.getSelectedFile().getAbsolutePath();
+		}
+		
+		OutputStream out = new FileOutputStream(desPath + "/" + "decryptedMessage.txt");
 		if (o instanceof  PGPLiteralData) {
 			System.out.println("Literal");
 			PGPLiteralData ld = (PGPLiteralData) o;
