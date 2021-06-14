@@ -125,17 +125,22 @@ public class KeyManager {
            PGPSecretKeyRing pgpSecretKeyRing = keyRingGen.generateSecretKeyRing();
            PGPPublicKeyRing pgpPublicKeyRing = keyRingGen.generatePublicKeyRing();
            //Izvezemo u .asc fajlove
-           OutputStream secretOut = new ArmoredOutputStream(
-                   new FileOutputStream("secret-keys/" + Long.toHexString(pgpSecretKeyRing.getSecretKey().getKeyID()).toUpperCase() + ".asc")
-           );
-           OutputStream publicOut = new ArmoredOutputStream(
-                   new FileOutputStream("public-keys/" + Long.toHexString(pgpSecretKeyRing.getSecretKey().getKeyID()).toUpperCase() + ".asc")
-           );
+           
+           
+           FileOutputStream secretKeyOutput = new FileOutputStream("secret-keys/" + Long.toHexString(pgpSecretKeyRing.getSecretKey().getKeyID()).toUpperCase() + ".asc");
+           OutputStream secretOut = new ArmoredOutputStream(secretKeyOutput);
+           
+           FileOutputStream publicKeyOutput = new FileOutputStream("public-keys/" + Long.toHexString(pgpSecretKeyRing.getSecretKey().getKeyID()).toUpperCase() + ".asc");
+           OutputStream publicOut = new ArmoredOutputStream(publicKeyOutput);
 
+           
            pgpSecretKeyRing.encode(secretOut);
            secretOut.close();
+           secretKeyOutput.close();
+           
            pgpPublicKeyRing.encode(publicOut);
            publicOut.close();
+           publicKeyOutput.close();
            
            this.secretKeyRingCollection = PGPSecretKeyRingCollection.addSecretKeyRing(secretKeyRingCollection, pgpSecretKeyRing);
            this.publicKeyRingCollection = PGPPublicKeyRingCollection.addPublicKeyRing(publicKeyRingCollection, pgpPublicKeyRing);
